@@ -1,0 +1,53 @@
+/* src/App.css */
+body {
+  overflow-x: hidden;
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  min-width: 250px;
+  max-width: 250px;
+  min-height: 100vh;
+  transition: all 0.3s;
+}
+
+/* Sidebar caché sur mobile par défaut, ou via classe active */
+.sidebar.collapsed {
+  margin-left: -250px;
+}
+
+/* Content Styles */
+.content {
+  width: 100%;
+  padding: 20px;
+  transition: all 0.3s;
+}
+
+/* Responsive: Sur mobile, la sidebar est cachée par défaut */
+@media (max-width: 768px) {
+  .sidebar {
+    margin-left: -250px;
+    position: fixed;
+    z-index: 999;
+    height: 100%;
+  }
+  
+  .sidebar.active {
+    margin-left: 0;
+  }
+  
+  /* Overlay pour assombrir le fond quand le menu est ouvert sur mobile */
+  .overlay {
+    display: block;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
+}
