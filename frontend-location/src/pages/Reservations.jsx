@@ -94,11 +94,11 @@ const Reservations = () => {
     if (reservation) {
       setEditingId(reservation.id);
       setFormData({
-        clientId: '1', // Valeur par défaut, normalement trouvée via l'ID
-        vehiculeId: '1',
+        clientId: reservation.client?.id?.toString() || '',
+        vehiculeId: reservation.vehicule?.id?.toString() || '',
         dateDebut: reservation.dateDebut,
         dateFin: reservation.dateFin,
-        status: reservation.status
+        status: mapBackendStatusToFrench(reservation.statusReservation)
       });
     } else {
       setEditingId(null);
@@ -120,7 +120,7 @@ const Reservations = () => {
     
     try {
       if (!editingId) {
-        // Seulement la création de nouvelles réservations est supportée
+        // Création d'une nouvelle réservation
         await reservationService.createReservation(
           parseInt(formData.clientId),
           parseInt(formData.vehiculeId),
@@ -128,10 +128,15 @@ const Reservations = () => {
           formData.dateFin,
           formData.status
         );
-        
-        // Recharger toutes les données pour avoir les dernières informations
-        await loadData();
+      } else {
+        // Modification: pour l'instant on ne supporte que l'annulation
+        if (formData.status === 'ANNULEE') {
+          await reservationService.cancelReservation(editingId);
+        }
       }
+      
+      // Recharger toutes les données pour avoir les dernières informations
+      await loadData();
       setShowModal(false);
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement:', error);
@@ -139,12 +144,40 @@ const Reservations = () => {
     }
   };
 
+  const handleEdit = (reservation) => {
+    handleShowModal(reservation);
+  };
+
+  const handleDelete = async (reservation) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la réservation de ${reservation.client?.nom} ?`)) {
+      try {
+        await reservationService.deleteReservation(reservation.id);
+        await loadData();
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert("Erreur lors de la suppression de la réservation");
+      }
+    }
+  };
+
+  const mapBackendStatusToFrench = (backendStatus) => {
+    const mapping = {
+      'PENDING': 'EN_ATTENTE',
+      'CONFIRMED': 'CONFIRMEE',
+      'CANCELLED': 'ANNULEE'
+    };
+    return mapping[backendStatus] || 'EN_ATTENTE';
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       'EN_ATTENTE': { bg: 'warning', text: 'En attente' },
+      'PENDING': { bg: 'warning', text: 'En attente' },
       'CONFIRMEE': { bg: 'success', text: 'Confirmée' },
+      'CONFIRMED': { bg: 'success', text: 'Confirmée' },
       'TERMINEE': { bg: 'secondary', text: 'Terminée' },
-      'ANNULEE': { bg: 'danger', text: 'Annulée' }
+      'ANNULEE': { bg: 'danger', text: 'Annulée' },
+      'CANCELLED': { bg: 'danger', text: 'Annulée' }
     };
     
     const config = statusConfig[status] || { bg: 'secondary', text: status };
@@ -237,10 +270,21 @@ const Reservations = () => {
                         <span className="fw-bold text-primary">{reservation.montantTotal}€</span>
                       </td>
                       <td className="text-end">
-                        <Button variant="outline-primary" size="sm" className="me-2" disabled title="Modification non disponible">
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm" 
+                          className="me-2" 
+                          onClick={() => handleEdit(reservation)}
+                          title="Modifier la réservation"
+                        >
                           <Edit size={16} />
                         </Button>
-                        <Button variant="outline-danger" size="sm" disabled title="Suppression non disponible">
+                        <Button 
+                          variant="outline-danger" 
+                          size="sm" 
+                          onClick={() => handleDelete(reservation)}
+                          title="Supprimer la réservation"
+                        >
                           <Trash2 size={16} />
                         </Button>
                       </td>
@@ -289,6 +333,11 @@ const Reservations = () => {
             <Modal.Title>{editingId ? 'Modifier la Réservation' : 'Nouvelle Réservation'}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            {editingId && (
+              <Alert variant="info" className="mb-3">
+                <strong>Mode modification:</strong> Seul le statut de la réservation peut être modifié. Pour annuler une réservation, changez le statut à "Annulée".
+              </Alert>
+            )}
             <div className="row">
               <div className="col-md-6">
                 <Form.Group className="mb-3">
@@ -297,6 +346,7 @@ const Reservations = () => {
                     required
                     value={formData.clientId}
                     onChange={(e) => setFormData({...formData, clientId: e.target.value})}
+                    disabled={editingId}
                   >
                     <option value="">Sélectionner un client</option>
                     {clients.map(client => (
@@ -312,6 +362,7 @@ const Reservations = () => {
                     required
                     value={formData.vehiculeId}
                     onChange={(e) => setFormData({...formData, vehiculeId: e.target.value})}
+                    disabled={editingId}
                   >
                     <option value="">Sélectionner un véhicule</option>
                     {vehicules.map(vehicule => (
@@ -333,6 +384,7 @@ const Reservations = () => {
                     required 
                     value={formData.dateDebut}
                     onChange={(e) => setFormData({...formData, dateDebut: e.target.value})}
+                    disabled={editingId}
                   />
                 </Form.Group>
               </div>
@@ -344,6 +396,7 @@ const Reservations = () => {
                     required 
                     value={formData.dateFin}
                     onChange={(e) => setFormData({...formData, dateFin: e.target.value})}
+                    disabled={editingId}
                   />
                 </Form.Group>
               </div>

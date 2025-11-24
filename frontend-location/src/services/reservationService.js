@@ -29,9 +29,19 @@ const getReservationsByStatus = async (status) => {
   return response.data;
 };
 
+const cancelReservation = async (id) => {
+  await axios.put(`${API_URL}/${id}/cancel`);
+};
+
+const deleteReservation = async (id) => {
+  await axios.delete(`${API_URL}/${id}`);
+};
+
 export default {
   getAllReservations,
   getReservationById,
   createReservation,
-  getReservationsByStatus
+  getReservationsByStatus,
+  cancelReservation,
+  deleteReservation
 };
